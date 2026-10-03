@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trace – lo-fi prototype (SIT223/SIT753 Task 7.2D)</title>
+<style>
+  :root{
+    --ink:#262626; --mid:#737373; --soft:#a3a3a3; --line:#d4d4d4; --fill:#ededed;
+    --panel:#f4f4f4; --paper:#ffffff; --dark:#404040; --note:#fff3b3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:#e5e5e5;font-size:14px}
+  button,input,textarea{font:inherit}
+  header.proto{max-width:1280px;margin:24px auto 12px;padding:0 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+  header.proto h1{font-size:20px;margin:0}
+  header.proto p{margin:2px 0 0;color:var(--mid);font-size:13px}
+  .steps{display:flex;gap:6px;flex-wrap:wrap}
+  .steps button{border:1px solid var(--soft);background:var(--paper);border-radius:16px;padding:5px 12px;cursor:pointer;font-size:12px}
+  .steps button[aria-current="step"]{background:var(--dark);color:#fff;border-color:var(--dark)}
+  .frame{max-width:1280px;margin:0 auto;padding:0 16px}
+  .screen{display:none;background:var(--paper);border:1px solid var(--soft);border-radius:8px;overflow:hidden;min-height:760px;position:relative}
+  .screen.active{display:block}
+  .screen-title{max-width:1280px;margin:0 auto 10px;padding:0 16px}
+  .screen-title h2{margin:0;font-size:22px}
+  .screen-title p{margin:4px 0 0;color:var(--mid)}
+  .bar{height:44px;background:#e0e0e0;display:flex;align-items:center;gap:8px;padding:0 16px}
+  .dot{width:12px;height:12px;border-radius:50%;background:#b3b3b3}
+  .url{margin-left:16px;background:#fff;border-radius:14px;padding:5px 14px;color:var(--mid);font-size:13px;width:min(560px,55%)}
+  .ext{margin-left:auto;width:24px;height:24px;border-radius:6px;background:var(--dark)}
+  .body{display:flex;min-height:716px}
+  .chat{flex:1;background:#f7f7f7;padding:36px 40px;display:flex;flex-direction:column;gap:28px;position:relative}
+  .prompt{align-self:flex-end;width:min(400px,80%);background:#dbdbdb;border-radius:10px;padding:12px}
+  .answer{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .tag{font-size:11px;font-weight:700;color:var(--mid);margin-bottom:8px}
+  .ln{height:8px;background:#d9d9d9;border-radius:4px;margin:8px 0}
+  .ln.s{width:60%}
+  .chatinput{margin-top:auto;height:48px;border:1px solid var(--soft);border-radius:24px;background:#fff}
+  .btn{border:1px solid var(--dark);border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer;background:var(--dark);color:#fff}
+  .btn.ghost{background:#fff;color:var(--ink)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.full{width:100%}
+  :focus-visible{outline:3px solid #6b9bd1;outline-offset:2px}
+  .popup{position:absolute;top:8px;right:16px;width:360px;background:#fff;border:1px solid #999;border-radius:10px;padding:20px 22px;box-shadow:0 2px 0 #ccc}
+  .popup h3,.panel h3,.modal h3{margin:0;font-size:20px}
+  .muted{color:var(--mid);font-size:13px}
+  label.fl{display:block;font-size:12px;font-weight:700;color:#595959;margin:16px 0 6px}
+  input[type=text],textarea{width:100%;border:1px solid #b3b3b3;border-radius:6px;padding:10px 12px;background:#fff;color:var(--ink)}
+  textarea{min-height:100px;resize:vertical}
+  .check{display:flex;gap:10px;align-items:flex-start;margin:18px 0;font-size:12px;color:#4d4d4d}
+  .check input{width:18px;height:18px;margin:0}
+  .panel{width:380px;background:var(--panel);border-left:1px solid #ccc;padding:18px 16px;display:flex;flex-direction:column;gap:12px}
+  .rec{background:var(--dark);color:#fff;border-radius:14px;padding:4px 12px;font-size:12px;font-weight:700}
+  .card{background:#fff;border:1px solid #bfbfbf;border-radius:8px;padding:12px 14px}
+  .chips{display:flex;gap:8px;margin:12px 0}
+  .chip{border:none;border-radius:14px;padding:6px 14px;background:#e6e6e6;font-size:12px;cursor:pointer;color:#333}
+  .chip[aria-pressed="true"]{background:#4d4d4d;color:#fff;font-weight:700}
+  .panel .spacer{flex:1}
+  .overlay{position:absolute;inset:44px 0 0 0;background:rgba(40,40,40,.35);display:flex;align-items:center;justify-content:center}
+  .modal{background:#fff;border:1px solid #999;border-radius:12px;width:min(600px,92%);padding:28px 32px}
+  .drop{border:1px dashed #999;background:#f7f7f7;border-radius:8px;height:130px;display:flex;align-items:center;justify-content:center;color:var(--mid);margin:18px 0}
+  .linked{display:flex;gap:10px;align-items:center;margin:10px 0;font-size:13px}
+  .row-end{display:flex;justify-content:flex-end;gap:12px;margin-top:24px}
+  .side{width:220px;background:#f0f0f0;padding:24px 12px}
+  .side .brand{font-weight:700;font-size:18px;padding:0 12px 20px}
+  .side a{display:block;padding:9px 16px;border-radius:6px;color:#333;text-decoration:none;margin-bottom:6px}
+  .side a[aria-current="page"]{background:#d1d1d1;font-weight:700}
+  .main{flex:1;padding:28px 32px;display:flex;gap:32px;flex-wrap:wrap}
+  .col{flex:1;min-width:320px;max-width:720px}
+  .aside{width:260px}
+  .main h2{margin:0;font-size:22px}
+  .summary{background:#f5f5f5;border:1px solid #ccc;border-radius:8px;padding:16px;margin-bottom:20px}
+  .summary p{margin:8px 0;color:#4d4d4d}
+  .timeline{position:relative;margin-top:20px;padding-left:36px}
+  .timeline::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:2px;background:#bfbfbf}
+  .tl{position:relative;margin-bottom:16px}
+  .tl::before{content:"";position:absolute;left:-30px;top:18px;width:14px;height:14px;border-radius:50%;background:#999}
+  .tl.cp::before{background:#333}
+  .tl.cp .card{background:#e6e6e6}
+  .tl .top{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:13px}
+  .pill{background:#4d4d4d;color:#fff;border-radius:12px;padding:3px 10px;font-size:11px}
+  .tl[hidden]{display:none}
+  .redact{background:#333;color:#333;border-radius:3px;cursor:pointer;padding:0 4px}
+  .redactable{cursor:pointer;border-bottom:1px dashed #999}
+  .redactable:hover{background:#eee}
+  .banner{background:#e6e6e6;border-radius:6px;padding:10px 14px;font-weight:700;font-size:13px;margin:16px 0}
+  .q{margin:18px 0}
+  .q b{display:block;margin-bottom:8px}
+  .progress{height:8px;background:#d9d9d9;border-radius:4px;margin:14px 0}
+  .progress span{display:block;height:100%;background:#4d4d4d;border-radius:4px;width:0;transition:width .2s}
+  table.checks{width:100%;border-collapse:collapse;margin-top:8px}
+  table.checks td{padding:10px 0;border-bottom:1px solid #e0e0e0}
+  table.checks td:last-child{text-align:right;font-weight:700}
+  .note{background:var(--note);border-radius:4px;padding:10px 12px;font-size:12px;color:#333;max-width:1280px;margin:12px auto 40px}
+  .notes-off .note{display:none}
+  .toggle{font-size:12px;display:flex;gap:6px;align-items:center}
+  .toast{margin-top:14px;background:#e6e6e6;border-radius:6px;padding:10px 14px;display:none;font-weight:700}
+  @media (max-width:900px){.panel{width:100%}.body{flex-direction:column}.popup{position:static;width:auto;margin:16px}.side{width:100%}.aside{width:100%}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="proto">
+  <div>
+    <h1>Trace lo-fi prototype</h1>
+    <p>Student companion for InnovAIte's AAIE project (SIT223/SIT753 Task 7.2D)</p>
+  </div>
+  <nav class="steps" aria-label="Screens"></nav>
+  <label class="toggle"><input type="checkbox" id="notesToggle" checked> Show design notes</label>
+</header>
+
+<!-- 1 -->
+<section class="scr" data-title="Start a session" data-sub="The student opens the Trace extension, names the assignment and starts recording.">
+  <div class="screen">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">chatgpt.com</span><span class="ext"></span></div>
+    <div class="body"><div class="chat">
+      <div class="prompt"><div class="tag">Prompt</div><div class="ln"></div><div class="ln s"></div></div>
+      <div class="answer"><div class="tag">AI answer</div><div class="ln"></div><div class="ln"></div><div class="ln"></div><div class="ln s"></div></div>
+      <div class="chatinput"></div>
+      <div class="popup" role="dialog" aria-label="Trace extension">
+        <h3>Trace</h3><div class="muted">New study session</div>
+        <label class="fl" for="asg">Assignment</label><input type="text" id="asg" value="SIT753 Task 7.1C – Jenkins pipeline">
+        <label class="fl" for="unit">Unit</label><input type="text" id="unit" value="SIT753">
+        <label class="check"><input type="checkbox" id="consent"> I agree that Trace records AI chats in this tab only while the session is on.</label>
+        <button class="btn full" id="startBtn" disabled data-go="1">Start session</button>
+        <p class="muted" style="font-size:11px">You can stop or delete the session at any time.</p>
+      </div>
+    </div></div>
+  </div>
+  <div class="note">Consent is asked before anything is recorded (Sprint 3 card: consent and delete controls). The Start button stays disabled until the box is ticked.</div>
+</section>
+
+<!-- 2 -->
+<section class="scr" data-title="Capture and tag" data-sub="Trace sits beside the AI tool. Each answer gets a one-tap tag and an optional one-line reason.">
+  <div class="screen">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">chatgpt.com</span><span class="ext"></span></div>
+    <div class="body">
+      <div class="chat">
+        <div class="prompt"><div class="ln"></div><div class="ln s"></div></div>
+        <div class="answer"><div class="ln"></div><div class="ln"></div><div class="ln"></div><div class="ln s"></div></div>
+        <div class="prompt"><div class="ln"></div><div class="ln s"></div></div>
+        <div class="answer"><div class="ln"></div><div class="ln"></div><div class="ln s"></div></div>
+        <div class="chatinput"></div>
+      </div>
+      <aside class="panel" aria-label="Trace side panel">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h3>Trace</h3><span class="rec">● Recording 00:42:10</span></div>
+        <div class="muted">Captured in this session: 6 prompts</div>
+        <div class="card">
+          <b style="font-size:12px">Answer 5, 10:52</b><div class="ln"></div><div class="ln s"></div>
+          <div class="chips" role="group" aria-label="Tag answer 5">
+            <button class="chip" aria-pressed="false">Used</button><button class="chip" aria-pressed="true">Changed</button><button class="chip" aria-pressed="false">Rejected</button>
+          </div>
+          <input type="text" aria-label="Reason for answer 5" value="Kept the stage layout, wrote my own test step">
+        </div>
+        <div class="card">
+          <b style="font-size:12px">Answer 6, 10:58</b><div class="ln"></div><div class="ln s"></div>
+          <div class="chips" role="group" aria-label="Tag answer 6">
+            <button class="chip" aria-pressed="false">Used</button><button class="chip" aria-pressed="false">Changed</button><button class="chip" aria-pressed="false">Rejected</button>
+          </div>
+          <input type="text" aria-label="Reason for answer 6" placeholder="Why? (one line, optional)">
+        </div>
+        <div class="spacer"></div>
+        <button class="btn full" data-go="2">Save draft checkpoint</button>
+        <button class="btn ghost full" data-go="0">Stop session</button>
+      </aside>
+    </div>
+  </div>
+  <div class="note">Tagging should take under 5 seconds (Sprint 2 acceptance criterion). Try clicking the tag buttons.</div>
+</section>
+
+<!-- 3 -->
+<section class="scr" data-title="Save a draft checkpoint" data-sub="The student saves the current draft. Trace links it to the prompts used since the last checkpoint.">
+  <div class="screen">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">chatgpt.com</span><span class="ext"></span></div>
+    <div class="body"><div class="chat">
+      <div class="prompt"><div class="ln"></div><div class="ln s"></div></div>
+      <div class="answer"><div class="ln"></div><div class="ln"></div><div class="ln s"></div></div>
+      <div class="chatinput"></div>
+    </div></div>
+    <div class="overlay"><div class="modal" role="dialog" aria-label="Save a draft checkpoint">
+      <h3>Save a draft checkpoint</h3>
+      <div class="drop">Drop your draft file here, or paste text</div>
+      <b style="font-size:13px">Prompts since last checkpoint (3)</b>
+      <label class="linked"><input type="checkbox" checked> 10:41 How do I add a test stage to a Jenkinsfile?</label>
+      <label class="linked"><input type="checkbox" checked> 10:52 Why does my Docker build fail on step 4?</label>
+      <label class="linked"><input type="checkbox" checked> 10:58 Check the wording of my README intro</label>
+      <label class="fl" for="cpnote">Note (optional)</label><input type="text" id="cpnote" value="Added test stage, fixed Docker build">
+      <div class="row-end"><button class="btn ghost" data-go="1">Cancel</button><button class="btn" data-go="3">Save checkpoint</button></div>
+    </div></div>
+  </div>
+  <div class="note">Linking drafts to prompts lets a tutor follow how the work changed, which is what AAIE's Revision Chain Analysis looks for.</div>
+</section>
+
+<!-- 4 -->
+<section class="scr" data-title="Session timeline" data-sub="Web app view of the whole session: prompts, tags and draft checkpoints in time order.">
+  <div class="screen">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">trace.innovaite.app/sessions/sit753-7-1c</span><span class="ext"></span></div>
+    <div class="body">
+      <nav class="side"><div class="brand">Trace</div><a href="#">My sessions</a><a href="#" aria-current="page">Timeline</a><a href="#">Review and redact</a><a href="#">AI-use statement</a><a href="#">Export</a></nav>
+      <div class="main">
+        <div class="col">
+          <h2>SIT753 Task 7.1C – Jenkins pipeline</h2>
+          <p class="muted">Started Monday 10:14, 3 h 20 min, 14 prompts, 2 drafts</p>
+          <div class="chips" role="group" aria-label="Filter timeline" id="filters">
+            <button class="chip" aria-pressed="true" data-f="all">All</button><button class="chip" aria-pressed="false" data-f="Used">Used</button><button class="chip" aria-pressed="false" data-f="Changed">Changed</button><button class="chip" aria-pressed="false" data-f="Rejected">Rejected</button>
+          </div>
+          <div class="timeline" id="timeline">
+            <div class="tl" data-t="Used"><div class="card"><div class="top">10:41 Prompt: Jenkinsfile test stage <span class="pill">Used</span></div><div class="ln"></div><div class="ln s"></div></div></div>
+            <div class="tl" data-t="Changed"><div class="card"><div class="top">10:52 Prompt: Docker build error <span class="pill">Changed</span></div><div class="ln"></div><div class="ln s"></div></div></div>
+            <div class="tl cp" data-t="cp"><div class="card"><div class="top">11:05 Draft checkpoint v2</div><div class="ln"></div><div class="ln s"></div></div></div>
+            <div class="tl" data-t="Rejected"><div class="card"><div class="top">11:20 Prompt: README wording <span class="pill">Rejected</span></div><div class="ln"></div><div class="ln s"></div></div></div>
+            <div class="tl" data-t="Used"><div class="card"><div class="top">11:34 Prompt: Unit test naming <span class="pill">Used</span></div><div class="ln"></div><div class="ln s"></div></div></div>
+          </div>
+        </div>
+        <div class="aside">
+          <div class="summary"><b>Summary</b><p>Used: 7</p><p>Changed: 4</p><p>Rejected: 3</p><p>Drafts: 2</p></div>
+          <button class="btn full" data-go="4">Review before sharing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">The filter chips work: pick "Changed" to check every changed answer has a reason before sharing.</div>
+</section>
+
+<!-- 5 -->
+<section class="scr" data-title="Review and redact" data-sub="Nothing is shared until the student checks it. Personal details are hidden behind a visible marker.">
+  <div class="screen">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">trace.innovaite.app/sessions/sit753-7-1c</span><span class="ext"></span></div>
+    <div class="body">
+      <nav class="side"><div class="brand">Trace</div><a href="#">My sessions</a><a href="#">Timeline</a><a href="#" aria-current="page">Review and redact</a><a href="#">AI-use statement</a><a href="#">Export</a></nav>
+      <div class="main">
+        <div class="col">
+          <h2>SIT753 Task 7.1C – Jenkins pipeline</h2>
+          <p class="muted">Click any underlined text to redact it. Click again to undo.</p>
+          <div class="card" style="margin:14px 0"><b style="font-size:12px">Turn 1</b><p>How do I add a test stage to a Jenkinsfile that runs <span class="redactable" tabindex="0">npm test</span> after the build?</p></div>
+          <div class="card" style="margin:14px 0"><b style="font-size:12px">Turn 2</b><p>My build fails on step 4. The log shows the path <span class="redact" tabindex="0" title="Click to undo">/Users/mia.tran/uni/sit753</span> [redacted: personal details] and a permission error.</p></div>
+          <div class="card" style="margin:14px 0"><b style="font-size:12px">Turn 3</b><p>Can you check the wording of my README intro? My student ID is <span class="redactable" tabindex="0">221234567</span>.</p></div>
+        </div>
+        <div class="aside">
+          <div class="summary"><b>Ready to share</b><p>14 prompts</p><p>2 draft checkpoints</p><p><span id="redCount">1</span> redaction(s)</p><p>Nothing leaves Trace yet</p></div>
+          <button class="btn full" data-go="5">Confirm and continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Redactions stay visible as markers so the tutor knows something was removed, rather than text vanishing silently.</div>
+</section>
+
+<!-- 6 -->
+<section class="scr" data-title="AI-use statement" data-sub="Short guided questions built from the student's own tags. Trace asks; the student writes every answer.">
+  <div class="screen">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">trace.innovaite.app/sessions/sit753-7-1c</span><span class="ext"></span></div>
+    <div class="body">
+      <nav class="side"><div class="brand">Trace</div><a href="#">My sessions</a><a href="#">Timeline</a><a href="#">Review and redact</a><a href="#" aria-current="page">AI-use statement</a><a href="#">Export</a></nav>
+      <div class="main">
+        <div class="col">
+          <h2>SIT753 Task 7.1C – Jenkins pipeline</h2>
+          <div class="banner">Trace asks the questions. You write the answers.</div>
+          <div class="q"><b>1. You marked 4 answers as Changed. What did you change, and why?</b><textarea class="ans">I kept the stage layout ChatGPT suggested but wrote the test step myself because its version skipped the coverage report.</textarea></div>
+          <div class="q"><b>2. Which part of the task did you complete without AI?</b><textarea class="ans" placeholder="Type your answer"></textarea></div>
+          <div class="q"><b>3. Was there an AI answer you rejected? What was wrong with it?</b><textarea class="ans" placeholder="Type your answer"></textarea></div>
+        </div>
+        <div class="aside">
+          <div class="summary"><b id="ansCount">1 of 3 answered</b><div class="progress"><span id="ansBar"></span></div></div>
+          <button class="btn full" data-go="6">Save statement</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Questions come from the student's own tags and drafts, so the statement is specific instead of "used ChatGPT for ideas". The progress bar updates as you type.</div>
+</section>
+
+<!-- 7 -->
+<section class="scr" data-title="Export to AAIE" data-sub="The log is checked against the AAIE Revision Chain Analysis schema, then downloaded or sent to AAIE.">
+  <div class="screen">
+    <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">trace.innovaite.app/sessions/sit753-7-1c</span><span class="ext"></span></div>
+    <div class="body">
+      <nav class="side"><div class="brand">Trace</div><a href="#">My sessions</a><a href="#">Timeline</a><a href="#">Review and redact</a><a href="#">AI-use statement</a><a href="#" aria-current="page">Export</a></nav>
+      <div class="main">
+        <div class="col">
+          <h2>SIT753 Task 7.1C – Jenkins pipeline</h2>
+          <div class="card" style="margin-top:16px"><b>Export checks</b>
+            <table class="checks">
+              <tr><td>Schema check (AAIE RCA format)</td><td>Passed</td></tr>
+              <tr><td>Prompts and answers</td><td>14</td></tr>
+              <tr><td>Tags with reasons</td><td>11 of 14</td></tr>
+              <tr><td>Draft checkpoints</td><td>2</td></tr>
+              <tr><td>Redactions</td><td>1</td></tr>
+              <tr><td>AI-use statement</td><td>Included</td></tr>
+            </table>
+          </div>
+          <p class="muted">Format: AAIE RCA JSON</p>
+          <div style="display:flex;gap:12px"><button class="btn ghost" id="dlBtn">Download file</button><button class="btn" id="sendBtn">Send to AAIE</button></div>
+          <div class="toast" id="toast" role="status"></div>
+        </div>
+        <div class="aside">
+          <div class="summary"><b>Export ready</b><p>Your tutor will see this log with your submission.</p></div>
+          <button class="btn ghost full" data-go="0">Start again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">The export is validated before download, and any missing items are listed for the student (Sprint 3). Buttons here only show a confirmation in the prototype.</div>
+</section>
+
+<script>
+  const scrs=[...document.querySelectorAll('.scr')];
+  const nav=document.querySelector('.steps');
+  scrs.forEach((s,i)=>{
+    const t=document.createElement('div');t.className='screen-title';
+    t.innerHTML=`<h2>${i+1}. ${s.dataset.title}</h2><p>${s.dataset.sub}</p>`;
+    s.prepend(t);s.classList.add('frame');
+    const b=document.createElement('button');b.textContent=`${i+1}. ${s.dataset.title}`;b.onclick=()=>show(i);nav.appendChild(b);
+  });
+  function show(i){scrs.forEach((s,k)=>{s.style.display=k===i?'block':'none';s.querySelector('.screen').classList.toggle('active',k===i)});
+    [...nav.children].forEach((b,k)=>b.setAttribute('aria-current',k===i?'step':'false'));window.scrollTo(0,0);}
+  document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g&&!g.disabled){e.preventDefault();show(+g.dataset.go);}
+    if(e.target.matches('.side a'))e.preventDefault();});
+  show(0);
+  document.getElementById('consent').onchange=e=>document.getElementById('startBtn').disabled=!e.target.checked;
+  document.querySelectorAll('.panel .chips').forEach(g=>g.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
+    g.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===c?'true':'false'));}));
+  document.getElementById('filters').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;
+    document.querySelectorAll('#filters .chip').forEach(x=>x.setAttribute('aria-pressed',x===c?'true':'false'));
+    document.querySelectorAll('#timeline .tl').forEach(t=>t.hidden=!(c.dataset.f==='all'||t.dataset.t===c.dataset.f));});
+  function toggleRedact(el){el.classList.toggle('redact');el.classList.toggle('redactable');
+    document.getElementById('redCount').textContent=document.querySelectorAll('.redact').length;}
+  document.querySelectorAll('.redact,.redactable').forEach(el=>{el.addEventListener('click',()=>toggleRedact(el));
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleRedact(el);}});});
+  const ans=[...document.querySelectorAll('.ans')];
+  function upd(){const n=ans.filter(a=>a.value.trim()).length;document.getElementById('ansCount').textContent=`${n} of 3 answered`;document.getElementById('ansBar').style.width=(n/3*100)+'%';}
+  ans.forEach(a=>a.addEventListener('input',upd));upd();
+  const toast=document.getElementById('toast');
+  document.getElementById('dlBtn').onclick=()=>{toast.textContent='Downloaded: trace-sit753-7-1c.json (prototype only)';toast.style.display='block';};
+  document.getElementById('sendBtn').onclick=()=>{toast.textContent='Sent to AAIE. Your tutor will see this log with your submission.';toast.style.display='block';};
+  document.getElementById('notesToggle').onchange=e=>document.body.classList.toggle('notes-off',!e.target.checked);
+</script>
+</body>
+</html>
